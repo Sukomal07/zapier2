@@ -1,0 +1,21 @@
+{
+  "name": "@repo/email",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "nodemailer": "^6.9.15"
+  },
+  "exports": {
+    "./email": "./src/index.ts"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^6.4.15"
+  }
+}

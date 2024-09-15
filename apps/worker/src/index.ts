@@ -1,7 +1,7 @@
 import prisma from "@repo/db/client";
 import { Kafka } from "kafkajs"
 import { parse } from "./parser";
-import { sendMail } from "./email";
+import { sendMail } from "@repo/email/email";
 import { JsonObject } from "@prisma/client/runtime/library";
 import { sendSol } from "./solana";
 import dotenv from "dotenv";
@@ -67,7 +67,7 @@ async function main() {
                 const body = parse((currentAction.metadata as JsonObject)?.body as string, zapRunMetadata);
                 const to = parse((currentAction.metadata as JsonObject)?.email as string, zapRunMetadata);
                 console.log(`Sending out email to ${to} body is ${body}`)
-                await sendMail(to, body, "You receive solana from zapier");
+                await sendMail({ toMail: to, subject: "You receive solana from zapier", message: body })
             }
             if (currentAction.type.id == "send-sol") {
                 const amount = parse((currentAction.metadata as JsonObject)?.amount as string, zapRunMetadata)
