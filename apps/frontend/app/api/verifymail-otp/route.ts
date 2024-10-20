@@ -1,48 +1,54 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendMail } from "@repo/email/email";
-import { verifyOtp, getOtp } from "../../../lib/otpStore";
+import { verifyOtp } from "../../../lib/otpStore";
 import prisma from "@repo/db/client";
 
 export async function POST(request: NextRequest) {
     try {
-        const { email } = await request.json();
+        const { email, otp } = await request.json();
 
-        if (!email) {
-            return NextResponse.json({ message: "Email is required" }, { status: 400 })
+        if (!email || !otp) {
+            return NextResponse.json({ message: "Email and Otp are required" }, { status: 400 });
         }
 
-        const otp = getOtp(email);
-
-        if (!otp) {
-            return NextResponse.json({ message: "Please generate otp first" }, { status: 400 })
-        }
         const isVerified = verifyOtp(email, otp);
 
         const mailOption = {
             toMail: email,
-            subject: "verification successfull",
-            message: `Your email ${email} is verified successfully. You can log in now. If you not generate verification otp please ignore.`
-        }
+            subject: "Verification successful",
+            message: `Your email ${email} has been verified successfully. You can now log in. If you did not generate a verification OTP, please ignore this email.`
+        };
 
-        try {
-            if (isVerified) {
+        if (isVerified) {
+            try {
                 const user = await prisma.user.findFirst({
                     where: {
                         email: email
                     }
-                })
+                });
 
                 if (!user) {
-                    return NextResponse.json({ message: "User not found" }, { status: 404 })
+                    return NextResponse.json({ message: "User not found" }, { status: 404 });
                 }
-                await sendMail(mailOption)
+
+                if (user.verified) {
+                    return NextResponse.json({ message: "Email already verified" }, { status: 400 });
+                }
+
+                await sendMail(mailOption);
 
                 user.verified = true;
-                return NextResponse.json({ message: "Email verify successfully" }, { status: 200 })
-            }
+                await prisma.user.update({
+                    where: { email: email },
+                    data: { verified: true }
+                });
 
-        } catch (error) {
-            return NextResponse.json({ message: "Failed to verify OTP" }, { status: 500 })
+                return NextResponse.json({ message: "Email verified successfully" }, { status: 200 });
+            } catch (error: any) {
+                return NextResponse.json({ message: "Failed to verify OTP", error: error.message }, { status: 500 });
+            }
+        } else {
+            return NextResponse.json({ message: "Invalid OTP" }, { status: 400 });
         }
 
     } catch (error: any) {

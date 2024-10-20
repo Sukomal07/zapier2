@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendMail } from "@repo/email/email";
 import { generateOtp, setOtp } from "../../../lib/otpStore";
+import prisma from "@repo/db/client";
 
 export async function POST(request: NextRequest) {
     try {
@@ -8,6 +9,20 @@ export async function POST(request: NextRequest) {
 
         if (!email) {
             return NextResponse.json({ message: "Email is required" }, { status: 400 })
+        }
+
+        const user = await prisma.user.findFirst({
+            where: {
+                email: email
+            }
+        })
+
+        if (!user) {
+            return NextResponse.json({ message: "User not found" }, { status: 404 });
+        }
+
+        if (user.verified) {
+            return NextResponse.json({ message: "Requested email already verified" }, { status: 400 });
         }
 
         const otp = generateOtp()
